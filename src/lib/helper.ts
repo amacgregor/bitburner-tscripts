@@ -30,3 +30,9 @@ export async function getKarma() : Promise<number> {
     // @ts-ignore
     return ns.heart.break()
 }
+
+export function announce(ns : NS, message : string, toastStyle : string) : void {
+    ns.print(message)
+    ns.tprint(message)
+    if (toastStyle) ns.toast(message, toastStyle)
+}
