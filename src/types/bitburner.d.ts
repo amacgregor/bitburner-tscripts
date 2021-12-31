@@ -1,15 +1,7 @@
 export type Message = unknown;
 export type Host = string;
 export type Script = string;
-export type Serializable =
-  | string
-  | number
-  | boolean
-  | any[]
-  | Record<PropertyKey, any>
-  | BigInt
-  | null
-  | undefined;
+export type Serializable = string | number | boolean | any[] | Record<PropertyKey, any> | BigInt | null | undefined;
 export type StockSymbol =
   | "ECP"
   | "MGCP"
@@ -46,31 +38,11 @@ export type StockSymbol =
   | "TITN";
 export type OrderType = "limitbuy" | "limitsell" | "stopbuy" | "stopsell";
 export type OrderPos = "long" | "short";
-export type University =
-  | "Summit University"
-  | "Rothman University"
-  | "ZB Institute Of Technology";
-export type UniversityCourse =
-  | "Study Computer Science"
-  | "Data Strucures"
-  | "Networks"
-  | "Algorithms"
-  | "Management"
-  | "Leadership";
-export type Gym =
-  | "Crush Fitness Gym"
-  | "Snap Fitness Gym"
-  | "Iron Gym"
-  | "Powerhouse Gym"
-  | "Millenium Fitness Gym";
+export type University = "Summit University" | "Rothman University" | "ZB Institute Of Technology";
+export type UniversityCourse = "Study Computer Science" | "Data Strucures" | "Networks" | "Algorithms" | "Management" | "Leadership";
+export type Gym = "Crush Fitness Gym" | "Snap Fitness Gym" | "Iron Gym" | "Powerhouse Gym" | "Millenium Fitness Gym";
 export type GymStat = "str" | "def" | "dex" | "agi";
-export type City =
-  | "Aevum"
-  | "Chongqing"
-  | "Sector-12"
-  | "New Tokyo"
-  | "Ishima"
-  | "Volhaven";
+export type City = "Aevum" | "Chongqing" | "Sector-12" | "New Tokyo" | "Ishima" | "Volhaven";
 export type PurchaseableProgram =
   | "brutessh.exe"
   | "ftpcrack.exe"
@@ -179,14 +151,7 @@ export type FactionName =
   | "CyberSec"
   | "Bladeburners";
 
-export type GangName =
-  | "Slum Snakes"
-  | "Tetrads"
-  | "The Syndicate"
-  | "The Dark Army"
-  | "Speakers for the Dead"
-  | "NiteSec"
-  | "The Black Hand";
+export type GangName = "Slum Snakes" | "Tetrads" | "The Syndicate" | "The Dark Army" | "Speakers for the Dead" | "NiteSec" | "The Black Hand";
 export type FactionWork = "hacking" | "field" | "security";
 export type Crime =
   | "shoplift"
@@ -307,3 +272,92 @@ export type AugmentName =
   | "BLADE-51b Tesla Armor: Omnibeam Upgrade"
   | "BLADE-51b Tesla Armor: IPU Upgrade"
   | "The Blade's Simulacrum";
+
+export declare interface Player {
+  hacking: number;
+  hp: number;
+  max_hp: number;
+  strength: number;
+  defense: number;
+  dexterity: number;
+  agility: number;
+  charisma: number;
+  intelligence: number;
+  hacking_chance_mult: number;
+  hacking_speed_mult: number;
+  hacking_money_mult: number;
+  hacking_grow_mult: number;
+  hacking_exp: number;
+  strength_exp: number;
+  defense_exp: number;
+  dexterity_exp: number;
+  agility_exp: number;
+  charisma_exp: number;
+  hacking_mult: number;
+  strength_mult: number;
+  defense_mult: number;
+  dexterity_mult: number;
+  agility_mult: number;
+  charisma_mult: number;
+  hacking_exp_mult: number;
+  strength_exp_mult: number;
+  defense_exp_mult: number;
+  dexterity_exp_mult: number;
+  agility_exp_mult: number;
+  charisma_exp_mult: number;
+  company_rep_mult: number;
+  faction_rep_mult: number;
+  numPeopleKilled: number;
+  money: number;
+  city: string;
+  location: string;
+  companyName: string;
+  crime_money_mult: number;
+  crime_success_mult: number;
+  isWorking: boolean;
+  workType: string;
+  currentWorkFactionName: string;
+  currentWorkFactionDescription: string;
+  workHackExpGainRate: number;
+  workStrExpGainRate: number;
+  workDefExpGainRate: number;
+  workDexExpGainRate: number;
+  workAgiExpGainRate: number;
+  workChaExpGainRate: number;
+  workRepGainRate: number;
+  workMoneyGainRate: number;
+  workMoneyLossRate: number;
+  workHackExpGained: number;
+  workStrExpGained: number;
+  workDefExpGained: number;
+  workDexExpGained: number;
+  workAgiExpGained: number;
+  workChaExpGained: number;
+  workRepGained: number;
+  workMoneyGained: number;
+  createProgramName: string;
+  createProgramReqLvl: number;
+  className: string;
+  crimeType: string;
+  work_money_mult: number;
+  hacknet_node_money_mult: number;
+  hacknet_node_purchase_cost_mult: number;
+  hacknet_node_ram_cost_mult: number;
+  hacknet_node_core_cost_mult: number;
+  hacknet_node_level_cost_mult: number;
+  hasWseAccount: boolean;
+  hasTixApiAccess: boolean;
+  has4SData: boolean;
+  has4SDataTixApi: boolean;
+  bladeburner_max_stamina_mult: number;
+  bladeburner_stamina_gain_mult: number;
+  bladeburner_analysis_mult: number;
+  bladeburner_success_chance_mult: number;
+  bitNodeN: number;
+  totalPlaytime: number;
+  playtimeSinceLastAug: number;
+  playtimeSinceLastBitnode: number;
+  jobs: any;
+  factions: string[];
+  tor: boolean;
+}
