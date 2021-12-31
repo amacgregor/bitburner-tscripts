@@ -19,10 +19,10 @@ const crimes: Crime[] = [
 ]
 
 /**
- * 
- * @param ns 
- * @param crime 
- * @returns 
+ *
+ * @param ns
+ * @param crime
+ * @returns
  */
 export async function main(ns: NS, crime = "mug"): Promise<void> {
   crime = ns.args[0] || crime
@@ -46,6 +46,6 @@ export async function main(ns: NS, crime = "mug"): Promise<void> {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function autocomplete(data : ServerData, args : string[]) : string[] {
+export function autocomplete(data: ServerData, args: string[]): string[] {
   return [...crimes]
 }
