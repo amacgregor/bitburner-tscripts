@@ -25,6 +25,7 @@ const crimes: Crime[] = [
  * @returns
  */
 export async function main(ns: NS, crime = "mug"): Promise<void> {
+  // @ts-ignore
   crime = ns.args[0] || crime
   const interval = 100
   while (true) {
@@ -45,6 +46,7 @@ export async function main(ns: NS, crime = "mug"): Promise<void> {
   }
 }
 
+// @ts-ignore
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function autocomplete(data: ServerData, args: string[]): string[] {
   return [...crimes]
