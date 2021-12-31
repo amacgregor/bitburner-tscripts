@@ -2,7 +2,7 @@ import http, { get } from "http"
 import { resolve, join, dirname } from "path"
 import fs from "fs/promises"
 
-import readdir from "recursive-readdir"
+import recursiveReadDir from "recursive-readdir"
 
 const server = http.createServer(async (request, response) => {
   response.setHeader("Access-Control-Allow-Origin", "*")
