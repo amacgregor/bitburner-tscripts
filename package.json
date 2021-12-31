@@ -1,5 +1,5 @@
 {
-  "name": "bitburner-typescript-template",
+  "name": "bitburner-tscripts",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -10,13 +10,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/amacgregor/bitburner-typescript.git"
+    "url": "git+https://github.com/amacgregor/bitburner-tscripts.git"
   },
   "author": "SlyCedix",
   "bugs": {
-    "url": "https://github.com/amacgregor/bitburner-typescript/issues"
+    "url": "https://github.com/amacgregor/bitburner-tscripts/issues"
   },
-  "homepage": "https://github.com/amacgregor/bitburner-typescript#readme",
+  "homepage": "https://github.com/amacgregor/bitburner-tscripts#readme",
   "devDependencies": {
     "@types/node": "^16.4.3",
     "@typescript-eslint/eslint-plugin": "^4.28.4",
