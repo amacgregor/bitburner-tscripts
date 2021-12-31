@@ -25,6 +25,6 @@ export async function main(ns: NS): Promise<void> {
     if (keepRunning && foundMissingProgram) {
       await ns.sleep(interval)
     }
-  // eslint-disable-next-line no-unmodified-loop-condition
+    // eslint-disable-next-line no-unmodified-loop-condition
   } while (keepRunning && foundMissingProgram)
 }

@@ -16,6 +16,6 @@ export async function main(ns: NS): Promise<void> {
     }
     ns.purchaseTor()
     if (keepRunning) await ns.sleep(interval)
-  // eslint-disable-next-line no-unmodified-loop-condition
+    // eslint-disable-next-line no-unmodified-loop-condition
   } while (keepRunning)
 }
