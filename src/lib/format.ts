@@ -1,13 +1,13 @@
-/** 
- * Formats some RAM amount as a round number of GB with thousands separators e.g. `1,028 GB` 
+/**
+ * Formats some RAM amount as a round number of GB with thousands separators e.g. `1,028 GB`
  * @param num - The number to format
  **/
 export function formatRam(num: number): string {
   return `${Math.round(num).toLocaleString()} GB`
 }
 
-/** 
- * Return a datatime in ISO format 
+/**
+ * Return a datatime in ISO format
  * @param {Date} datetime - The datetime object to convert to string
  **/
 export function formatDateTime(datetime: Date): string {
@@ -60,11 +60,10 @@ const symbols = ["", "k", "m", "b", "t", "q", "Q", "s", "S", "o", "n", "e33", "e
  * @param {number=} maxSignificantFigures - (default: 6) The maximum significant figures you wish to see (e.g. 123, 12.3 and 1.23 all have 3 significant figures)
  * @param {number=} maxDecimalPlaces - (default: 3) The maximum decimal places you wish to see, regardless of significant figures. (e.g. 12.3, 1.2, 0.1 all have 1 decimal)
  **/
-export function formatNumberShort(num: number, maxSignificantFigures = 6, maxDecimalPlaces = 3): string {
-  //@ts-ignore
-  for (let i = 0, sign = Math.sign(num), num = Math.abs(num); num >= 1000 && i < symbols.length; i++) num /= 1000
+export function formatNumberShort(num: number, maxSignificantFigures: number | undefined = 6, maxDecimalPlaces: number | undefined = 3): string {
+  // eslint-disable-next-line no-var
+  for (var i = 0, sign = Math.sign(num), num = Math.abs(num); num >= 1000 && i < symbols.length; i++) num /= 1000
   // TODO: A number like 9.999 once rounted to show 3 sig figs, will become 10.00, which is now 4 sig figs.
-  //@ts-ignore
   return (sign < 0 ? "-" : "") + num.toFixed(Math.max(0, Math.min(maxDecimalPlaces, maxSignificantFigures - Math.floor(1 + Math.log10(num))))) + symbols[i]
 }
 
