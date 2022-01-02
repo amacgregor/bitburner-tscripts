@@ -1,7 +1,7 @@
 import { NS } from '../../NetscriptDefinitions'
 
 export async function main(ns : NS) : Promise<void> {
-    const server = ns.args[0]
+    const server: any = ns.args[0]
 
     const flags = ns.flags([
         ['refreshrate', 200],
@@ -22,7 +22,7 @@ export async function main(ns : NS) : Promise<void> {
         const maxMoney = ns.getServerMaxMoney(server)
         const minSec = ns.getServerMinSecurityLevel(server)
         const sec = ns.getServerSecurityLevel(server)
-        ns.clearLog(server)
+        ns.clearLog()
         ns.print(`${server}:`)
         ns.print(` $_______: ${ns.nFormat(money, "$0.000a")} / ${ns.nFormat(maxMoney, "$0.000a")} (${(money / maxMoney * 100).toFixed(2)}%)`)
         ns.print(` security: +${(sec - minSec).toFixed(2)}`)
@@ -32,7 +32,8 @@ export async function main(ns : NS) : Promise<void> {
         await ns.sleep(flags.refreshrate)
     }
 }
-
-export function autocomplete(data, args) {
+// @ts-ignore
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function autocomplete(data: ServerData, args: string[]): string[] {
     return [...data.servers] // This script    autocompletes the list of servers.
 }
