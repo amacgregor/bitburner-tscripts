@@ -1,4 +1,4 @@
-import {NS, ProcessInfo} from '../../NetscriptDefinitions'
+import {NS, ProcessInfo, Server} from '../../NetscriptDefinitions'
 
 export declare interface ProcessCache {
     [index: string]: Array<ProcessInfo>;
@@ -65,6 +65,13 @@ export declare interface BurnerServer {
     timeToGrow: () => number;
     timeToHack: () => number;
     weakenThreadsNeeded: () => number;
+}
+
+export declare interface AnalyzeHackServer extends Server{
+    estHackPercent?: number;
+    theoreticalGainRate?: number;
+    gainRate?: number;
+    expRate?: number;
 }
 
 export declare interface ToolConfiguration {
