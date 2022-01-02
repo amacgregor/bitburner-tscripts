@@ -39,12 +39,14 @@ export async function main(ns: NS): Promise<void> {
       }
 
       headers.push("<span style=\"text:left;padding-right:5px \">Income  </span> <br>")
+      //@ts-ignore - Ignoring due to undocument NS behaivour
       values.push(formatMoney(ns.getScriptIncome()[0], 3, 2) + "/sec <br>")
 
       headers.push("<span style=\"text-align:left\">Experience</span> <br>")
+      //@ts-ignore - Ignoring due to undocument NS behaivour
       values.push(formatNumberShort(ns.getScriptExpGain(), 3, 2) + "/sec <br>")
 
-      //@ts-ignore
+      //@ts-ignore - Ignoring due to undocument NS behaivour
       const karma = ns.heart.break()
       if (karma <= -9) {
         headers.push("<span style=\"color:red\"> Karma</span> <br>")

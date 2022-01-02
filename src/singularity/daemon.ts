@@ -196,10 +196,20 @@ const isFlaggedForDeletion = (hostName: string): boolean => hostName != "home" &
 // ===== Synchronous helper functions  //
 // =================================== //
 
+/**
+ * Update all the player stats and information on the global state
+ *
+ * @return  {Player}  Player information obkect
+ */
 function refreshPlayerStats(): Player {
   return (playerStats = _ns.getPlayer())
 }
 
+/**
+ * Return the player hacking skill values
+ *
+ * @return  {Player[]}
+ */
 function playerHackSkill(): Player["hacking"] {
   return playerStats.hacking
 }
@@ -228,8 +238,15 @@ export function hashCode(s: string): number {
   }, 0)
 }
 
-// Check running status of scripts on servers
-/** @param {NS} ns **/
+/**
+ * Check running status of scripts on servers
+ *
+ * @param   {NS}      ns           
+ * @param   {string}  scriptName   name of the script we want to check. Must include the full path
+ * @param   {[type]}  canUseCache  allow to use cache for the ps command
+ *
+ * @return  {string}               server name running the script
+ */
 function whichServerIsRunning(ns: NS, scriptName: string, canUseCache = true): string | null {
   for (const server of serverListByFreeRam)
     if (ps(ns, server.name, canUseCache).some((process: { filename: any }) => process.filename === scriptName)) return server.name
@@ -238,8 +255,13 @@ function whichServerIsRunning(ns: NS, scriptName: string, canUseCache = true): s
 
 /**
  * PS can get expensive, and we use it a lot so we cache this for the duration of a loop 
- **/
-/** @param {NS} ns **/
+ *
+ * @param   {NS}             ns           
+ * @param   {string}         server       server name
+ * @param   {[type]}         canUseCache  allow to use cache for the ps command
+ *
+ * @return  {ProcessInfo[]}               Process information for the given server
+ */
 function ps(ns: NS, server: string, canUseCache = true): ProcessInfo[] {
   const cachedResult = psCache[server]
   return canUseCache && cachedResult ? cachedResult : (psCache[server] = ns.ps(server))
