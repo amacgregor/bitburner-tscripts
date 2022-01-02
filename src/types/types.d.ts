@@ -98,7 +98,7 @@ export declare interface SingularityJob extends ToolConfiguration {
     args?: () => string[];
 }
 
-export declare interface SingularityAsyncJob extends SingularityJob {
+export declare interface SingularityAsyncJob extends ToolConfiguration {
     isLaunched: boolean;
     requiredServer: string;
 }

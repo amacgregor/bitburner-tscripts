@@ -1,5 +1,5 @@
 import { NS, Player, ProcessInfo, BitNodeMultipliers } from "../../NetscriptDefinitions"
-import { SingularityJob, HackingTool, BurnerDictionary, PortCracker, BurnerServer } from "../types/types"
+import { SingularityJob, SingularityAsyncJob, HackingTool, BurnerDictionary, PortCracker, BurnerServer } from "../types/types"
 
 import {
   getActiveSourceFiles_Custom,
@@ -72,12 +72,12 @@ const loopInterval = 1000 //ms
 const cycleTimingDelay = 1600 //ms
 
 // Jobs and ancilliary tasks
-let asynchronousJobs = [] // Scripts meant to be run asynchrounously outside of the main loop of the daemon
+let asynchronousJobs: SingularityAsyncJob[] = [] // Scripts meant to be run asynchrounously outside of the main loop of the daemon
 let periodicJobs: SingularityJob[] = [] // Scripts meant to be ran in an interval
 
 const serversDictCommand = (servers: any, command: string) => `Object.fromEntries(${JSON.stringify(servers)}.map(server => [server, ${command}]))`
 
-const psCache: { [index: string]: ProcessInfo[] | ProcessInfo } = {}
+let psCache: { [index: string]: ProcessInfo[] | ProcessInfo } = {}
 
 // Replacements / wrappers for various NS calls to let us keep track of them in one place and consolidate where possible
 const log = (...args: any[]): string => logHelper(_ns, ...args)
@@ -94,7 +94,9 @@ export async function main(ns: NS): Promise<void> {
   disableLogs(ns, ["getServerMaxRam", "getServerUsedRam", "getServerMoneyAvailable", "getServerGrowth", "getServerSecurityLevel", "exec", "scan"])
 
   // Setup the asynchronous jobs
-  asynchronousJobs = []
+  asynchronousJobs = [
+    { name: "/gui/stats.js", isLaunched: false, requiredServer: "home", shouldRun: () => ns.getServerMaxRam("home") >= 64 /* Don't waste precious RAM */ }, // Adds stats not usually in the HUD
+  ]
 
   let interval = 29000 // Set the starting interval for periodic jobs
 
@@ -124,17 +126,14 @@ export async function main(ns: NS): Promise<void> {
   buildPortCrackingArray(ns) // build port cracking array
   await establishMultipliers(ns) // figure out the various bitnode and player multipliers
 
-  ns.tprint("toolsByShortName")
-  ns.tprint(toolsByShortName)
-
-  // ns.tprint("serverListByMaxRam")
-  // ns.tprint(serverListByMaxRam)
-  // ns.tprint("serverListByTargetOrder")
-  // ns.tprint(serverListByTargetOrder)
+  await runStartupScripts(ns)
 
   await mainLoop(ns)
 }
 
+/**
+ * 
+ */
 async function mainLoop(ns: NS): Promise<void> {
   log("Starting daemon main loop")
   let loops = -1
@@ -142,10 +141,16 @@ async function mainLoop(ns: NS): Promise<void> {
   do {
     loops++
     if (loops > 0) await ns.sleep(loopInterval)
-    refreshPlayerStats()
+    try {
+      psCache = {} // clear the cache for this run
+      refreshPlayerStats()
 
-    // Run periodic jobs
-    await runPeriodicJobs(ns)
+      // Run periodic jobs
+      await runPeriodicJobs(ns)
+    } catch (err) {
+      log('WARNING: Caught an error in the main loop: ' + err, true, 'warning')
+
+    }
   } while (true)
 }
 
@@ -211,7 +216,7 @@ function getNumPortCrackers(): number {
   return portCrackers.filter((c) => c.exists()).length
 }
 
-function getTool(s: string | HackingTool | SingularityJob): any {
+function getTool(s: string | HackingTool | SingularityJob| SingularityAsyncJob): any {
   return toolsByShortName[s] || toolsByShortName[s.shortName || hashToolDefinition(s)]
 }
 
@@ -224,19 +229,23 @@ export function hashCode(s: string): number {
 }
 
 // Check running status of scripts on servers
+/** @param {NS} ns **/
 function whichServerIsRunning(ns: NS, scriptName: string, canUseCache = true): string | null {
   for (const server of serverListByFreeRam)
     if (ps(ns, server.name, canUseCache).some((process: { filename: any }) => process.filename === scriptName)) return server.name
   return null
 }
 
-/** @param {NS} ns
- * PS can get expensive, and we use it a lot so we cache this for the duration of a loop */
+/**
+ * PS can get expensive, and we use it a lot so we cache this for the duration of a loop 
+ **/
+/** @param {NS} ns **/
 function ps(ns: NS, server: string, canUseCache = true): ProcessInfo[] {
   const cachedResult = psCache[server]
   return canUseCache && cachedResult ? cachedResult : (psCache[server] = ns.ps(server))
 }
 
+/** @param {NS} ns **/
 function addServer(server: BurnerServer, verbose?: boolean): void {
   if (verbose) log(`Adding a new server to all lists: ${server}`)
   addedServerNames.push(server.name)
@@ -246,6 +255,7 @@ function addServer(server: BurnerServer, verbose?: boolean): void {
   serverListByTargetOrder.push(server)
 }
 
+/** @param {NS} ns **/
 function removeServerByName(deletedHostName: string): void {
   addedServerNames.splice(addedServerNames.indexOf(deletedHostName), 1)
   const removeByName = (hostname: any, list: any[], listname: string) => {
@@ -261,6 +271,7 @@ function removeServerByName(deletedHostName: string): void {
   removeByName(deletedHostName, serverListByTargetOrder, "serverListByTargetOrder")
 }
 
+/** @param {NS} ns **/
 function buildServerList(ns: NS, verbose = false): void {
   // Get list of servers (i.e. all servers on first scan, or newly purchased servers on subsequent scans) that are not currently flagged for deletion
   const allServers = scanAllServers(ns).filter((hostName) => !isFlaggedForDeletion(hostName))
@@ -275,6 +286,7 @@ function buildServerList(ns: NS, verbose = false): void {
 }
 
 // assemble a list of port crackers and abstract their functionality
+/** @param {NS} ns **/
 function buildPortCrackingArray(ns: NS): void {
   const crackNames = ["BruteSSH.exe", "FTPCrack.exe", "relaySMTP.exe", "HTTPWorm.exe", "SQLInject.exe"]
   for (let i = 0; i < crackNames.length; i++) {
@@ -491,7 +503,7 @@ function buildPortCrackerObject(ns: NS, crackName: string): PortCracker {
 /** @param {NS} ns **/
 function buildToolkit(ns: NS): void {
   log("buildToolkit")
-  for (const toolConfig of hackTools.concat(periodicJobs)) {
+  for (const toolConfig of hackTools.concat(asynchronousJobs).concat(periodicJobs)) {
     const tool: HackingTool = {
       instance: ns,
       name: toolConfig.name,
@@ -559,6 +571,18 @@ function sortServerList(o: string): void {
 // ==== Asynchornous helper functions  //
 // =================================== //
 
+
+async function runStartupScripts(ns: NS) {
+  log("runStartupScripts")
+  for (const job of asynchronousJobs)
+      if (!job.isLaunched && (job.shouldRun === undefined || job.shouldRun()))
+      job.isLaunched = await runJob(ns, getTool(job))
+  // if every helper is launched already return "true" so we can skip doing this each cycle going forward.
+  return asynchronousJobs.reduce((allLaunched, tool) => allLaunched && tool.isLaunched, true)
+}
+
+
+/** @param {NS} ns **/
 async function establishMultipliers(ns: NS): Promise<void> {
   log("establishMultipliers")
   bitnodeMults = (await tryGetBitNodeMultipliers_Custom(ns, getNsDataThroughFile)) || {
@@ -579,6 +603,7 @@ async function establishMultipliers(ns: NS): Promise<void> {
     )
 }
 
+/** @param {NS} ns **/
 async function runJob(ns: NS, tool: HackingTool): Promise<boolean> {
   if (!doesFileExist(tool.name)) {
     log(`ERROR: Script ${tool.name} was not found on ${daemonHost}`, true, "error")
@@ -734,3 +759,4 @@ export async function arbitraryExecution(
   if (splitThreads && !tool.isThreadSpreadingAllowed) return false
   return remainingThreads == 0
 }
+
