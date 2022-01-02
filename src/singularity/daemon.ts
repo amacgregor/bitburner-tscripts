@@ -11,6 +11,8 @@ import {
 import { disableLogs, log as logHelper } from "/lib/helper.js";
 import { scanAllServers } from "/lib/hacking.js";
 import { formatRam, formatMoney } from "/lib/format.js";
+import { HackingContext } from "/lib/entities/hacking.class.js";
+import { EarlyHackingStrategy } from "/lib/entities/earlyHackingStrategy.js";
 
 // === CONSTANTS ===
 // track how costly (in security) a growth/hacking thread is.
@@ -39,13 +41,13 @@ const homeReservedRam = 32;
 
 // == Tools and Scripts
 // the port cracking array, we use this to do some things
-const portCrackers: any[] = [];
+let portCrackers: any[] = [];
 // The primary tools copied around and used for hacking
-const hackTools: any[] = [];
+let hackTools: any[] = [];
 // the port cracking array, we use this to do some things
 // toolkit var for remembering the names and costs of the scripts we use the most
-const tools: HackingTool[] = [];
-const toolsByShortName: { [index: string]: HackingTool } = {}; // Dictionary keyed by tool short name
+let tools: HackingTool[] = [];
+let toolsByShortName: { [index: string]: HackingTool } = {}; // Dictionary keyed by tool short name
 
 // === Command line flags
 let options;
@@ -53,11 +55,11 @@ let verbose: boolean;
 
 // ==== Dictionaries and Data objects ====
 // Server lists
-const addedServerNames: string[] = [];
-const serverList: BurnerServer[] = [];
-const serverListByFreeRam: BurnerServer[] = [];
-const serverListByMaxRam: BurnerServer[] = [];
-const serverListByTargetOrder: BurnerServer[] = [];
+let addedServerNames: string[] = [];
+let serverList: BurnerServer[] = [];
+let serverListByFreeRam: BurnerServer[] = [];
+let serverListByMaxRam: BurnerServer[] = [];
+let serverListByTargetOrder: BurnerServer[] = [];
 
 // Server Dictionaries
 let dictServerRequiredHackinglevels: BurnerDictionary = {};
@@ -72,6 +74,8 @@ let dictSourceFiles: any; // Available source files
 // Main loop
 const loopInterval = 1000; //ms
 const cycleTimingDelay = 1600; //ms
+
+let hackingContext;
 
 // Jobs and ancilliary tasks
 let asynchronousJobs: SingularityAsyncJob[] = []; // Scripts meant to be run asynchrounously outside of the main loop of the daemon
@@ -98,6 +102,16 @@ export function autocomplete(data: any, args: string[]): string[] {
 export async function main(ns: NS): Promise<void> {
   _ns = ns;
   daemonHost = "home";
+
+  // Reset global vars on startup since they persist in memory in certain situations (such as on Augmentation)
+  serverListByFreeRam = [];
+  serverListByTargetOrder = [];
+  serverListByMaxRam = [];
+  addedServerNames = [];
+  portCrackers = [];
+  tools = [];
+  toolsByShortName = {};
+  psCache = {};
 
   // Process command line args (if any)
   //@ts-ignore
@@ -167,17 +181,49 @@ async function mainLoop(ns: NS): Promise<void> {
   log("Starting daemon main loop");
   let loops = -1;
 
+  // Initialize Contexts 
+  hackingContext = new HackingContext(ns, new EarlyHackingStrategy())
+
   do {
     loops++;
     if (loops > 0) await ns.sleep(loopInterval);
     try {
       psCache = {}; // clear the cache for this run
       refreshPlayerStats();
+      buildServerList(ns, true); // Check if any new servers have been purchased by the external host_manager process
+      await runPeriodicJobs(ns); // Run periodic jobs
+
+      if (loops % 60 == 0) {
+        // For more expensive updates, only do these every so often
+        await refreshDynamicServerData(ns, addedServerNames);
+      }
+
+      sortServerList("targeting"); // Update the order in which we ought to target servers
+
+      let network = getNetworkStats();
 
       // Main actions that are repeated every single time on the loop
+      if ((playerStats.hacking < 30 || network.listOfServersFreeRam.length <= 0)) {
+        hackingContext.run()
+        // ns.tprint("We are early in the loop we should go to school");
+        // ns.universityCourse("Rothman University", "Study Computer Science");
 
-      // Run periodic jobs
-      await runPeriodicJobs(ns);
+        // let serList = serverListByTargetOrder.filter(server => server.canCrack())
+        // let crackList = portCrackers.filter(cracker => cracker.exists())
+
+        // crackList.forEach((crack) => {
+        //   ns.tprint(crack.name)
+        // })
+
+        // serList.forEach(function(server) {
+        //   ns.tprint(`${server.name} - ${server.portsRequired} - ${server.getSecurity()} `)
+        //   ns.print(`${server.name} - ${server.portsRequired} - ${server.getSecurity()} `)
+        //   ns.nuke(server.name)
+        // })
+
+      } else {
+        ns.tprint("We have xp let's do something else ");
+      }
     } catch (err) {
       log("WARNING: Caught an error in the main loop: " + err, true, "warning");
     }
@@ -623,6 +669,26 @@ function sortServerList(o: string): void {
   }
 }
 
+// Helpers to get slices of info / cumulative stats across all rooted servers
+function getNetworkStats() {
+  const rootedServers = serverListByMaxRam.filter((server) => server.hasRoot());
+  const listOfServersFreeRam = rootedServers.map((s) => s.ramAvailable()).filter((ram) => ram > 1.6); // Servers that can't run a script don't count
+  const totalMaxRam = rootedServers.map((s) => s.totalRam()).reduce((a, b) => a + b, 0);
+  const totalFreeRam = listOfServersFreeRam.reduce((a, b) => a + b, 0);
+  return {
+    listOfServersFreeRam: listOfServersFreeRam,
+    totalMaxRam: totalMaxRam,
+    totalFreeRam: totalFreeRam,
+    totalUsedRam: totalMaxRam - totalFreeRam,
+    // The money we could make if we took 100% from every currently hackable server, to help us guage how relatively profitable each server is
+    //totalMaxMoney: rootedServers.filter(s => s.canHack() && s.shouldHack()).map(s => s.getMaxMoney()).reduce((a, b) => a + b, 0)
+  };
+}
+// Simpler function to get current total percentage of ram used across the network
+function getTotalNetworkUtilization() {
+  const utilizationStats = getNetworkStats();
+  return utilizationStats.totalUsedRam / utilizationStats.totalMaxRam;
+}
 // =================================== //
 // ==== Asynchornous helper functions  //
 // =================================== //

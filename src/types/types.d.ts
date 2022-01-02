@@ -28,7 +28,7 @@ export declare interface BurnerServer {
     percentageToSteal: number;
     getMoney: () => any;
     getSecurity: () => any;
-    canCrack: () => any;
+    canCrack: () => boolean;
     canHack: () => any;
     shouldHack: () => any;
     previouslyPrepped: boolean;
