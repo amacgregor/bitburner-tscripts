@@ -7,6 +7,11 @@ const argsSchema = [
     ['help', false],
 ]
 
+/**
+ * Stats updates the UI of the game with useful information about experience, income and karma
+ *
+ * @param   {NS}       ns  Netscript object
+ */
 export async function main(ns: NS): Promise<void> {
   const doc = eval("document")
   const hook0 = doc.getElementById("overview-extra-hook-0")
