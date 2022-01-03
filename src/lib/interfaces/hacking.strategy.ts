@@ -13,5 +13,5 @@ export interface HackingStrategy {
   state: HackingStrategyStates;
   identifyTarget(ns: NS, serverListByTargetOrder: BurnerServer[]): Promise<void>;
   prepare(ns: NS, player: Player): Promise<void>;
-  launchAttach(ns: NS): Promise<void>;
+  launchAttach(ns: NS) : Promise<void>;
 }

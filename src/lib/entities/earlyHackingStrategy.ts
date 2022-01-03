@@ -6,7 +6,7 @@ import { announce } from "/lib/helper.js";
 import { BurnerServer } from "/types/types.js";
 
 export class EarlyHackingStrategy implements HackingStrategy {
-  private target: BurnerServer | undefined;
+  private targets: BurnerServer[] = [];
   public state: HackingStrategyStates = HackingStrategyStates.PREPARING;
   private studying = false;
   private lastStatusUpdateTime = 0;
@@ -56,8 +56,8 @@ export class EarlyHackingStrategy implements HackingStrategy {
     let validTargets = serverListByTargetOrder.filter((s) => s.canHack() && s.shouldHack() && s.hasRoot());
 
     if (validTargets.length > 0) {
-      this.target = validTargets[0];
-      announce(ns, `Target Found ${validTargets[0].name}`, "info");
+      this.targets = validTargets;
+      announce(ns, `Total of ${validTargets.length} found.`, "info");
       this.state = HackingStrategyStates.TARGET_IDENTIFIED;
     } else {
       if (Date.now() - this.lastStatusUpdateTime > this.statusUpdateInterval) {
@@ -68,13 +68,21 @@ export class EarlyHackingStrategy implements HackingStrategy {
   }
 
   /**
-   * [async description]
+   * Make every server hack itself using the looper script.
    *
    * @param   {NS<void>}       ns  [ns description]
    *
    * @return  {Promise<void>}      [return description]
    */
   public async launchAttach(ns: NS): Promise<void> {
-    await ns.hack(this.target!.name); //@TODO this needs to be launched as a distributed attack
+    for (let i = 0; this.targets.length > i; i++) {
+        let host = this.targets[i].name
+        let threads = Math.floor(ns.getServerMaxRam(host) / ns.getScriptRam("/early/looper.js", host));
+        if (threads > 0) {
+            await ns.scp("/early/looper.js", "home", host);
+            await ns.exec("/early/looper.js", host, threads, host);
+        }
+    }
+    this.state = HackingStrategyStates.RUNNING;
   }
 }
