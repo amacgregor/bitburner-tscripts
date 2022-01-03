@@ -1,7 +1,7 @@
 import { NS } from "../../NetscriptDefinitions"
 
 import { getNsDataThroughFile, getActiveSourceFiles } from "/lib/ram.js"
-import { formatNumberShort, formatMoney } from "/lib/format.js"
+import { formatNumberShort, formatMoney, formatRam } from "/lib/format.js"
 
 const argsSchema = [
     ['help', false],
@@ -52,6 +52,11 @@ export async function main(ns: NS): Promise<void> {
         headers.push("<span style=\"color:red\"> Karma</span> <br>")
         values.push("<span style=\"color:red\">" + formatNumberShort(karma, 3, 2) + "</span><br>")
       }
+
+      
+      headers.push("<span style=\"text-align:left\">Home RAM</span> <br>")
+      //@ts-ignore - Ignoring due to undocument NS behaivour
+      values.push(formatRam(ns.getServerUsedRam("home")) + "<br>")
 
       // eslint-disable-next-line no-irregular-whitespace
       hook0.innerHTML = headers.join("")

@@ -1,5 +1,7 @@
-import { NS } from "../../../NetscriptDefinitions"
-import { HackingStrategy } from "../interfaces/hacking.strategy";
+import { NS, Player } from "../../../NetscriptDefinitions"
+import { HackingStrategyStates } from "/lib/enums.js";
+import { HackingStrategy } from "/lib/interfaces/hacking.strategy.js";
+import { BurnerServer } from "/types/types.js";
 
 export class HackingContext {
     private ns: NS;
@@ -14,8 +16,19 @@ export class HackingContext {
         this.strategy = strategy;
     }
 
-    public run(): void {
-        this.ns.tprint("TEST context ran")
-        this.strategy.identifyTarget(this.ns)
+    public async run(playerState: Player, serverListByTargetOrder: BurnerServer[]): Promise<void> {
+        switch(this.strategy.state){
+            case HackingStrategyStates.PREPARING:
+                await this.strategy.prepare(this.ns, playerState)
+                break;
+            case HackingStrategyStates.PREPARED:
+                await this.strategy.identifyTarget(this.ns, serverListByTargetOrder)
+                break;
+            case HackingStrategyStates.TARGET_IDENTIFIED:
+                await this.strategy.launchAttach(this.ns)
+                break;
+            case HackingStrategyStates.RUNNING:
+                break;
+        }
     }
 }

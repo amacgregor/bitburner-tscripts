@@ -127,7 +127,7 @@ export async function main(ns: NS): Promise<void> {
 
   // Setup the asynchronous jobs
   asynchronousJobs = [
-    { name: "/gui/stats.js", isLaunched: false, requiredServer: "home", shouldRun: () => ns.getServerMaxRam("home") >= 64 /* Don't waste precious RAM */ }, // Adds stats not usually in the HUD
+    { name: "/gui/stats.js", isLaunched: false, requiredServer: "home", shouldRun: () => ns.getServerMaxRam("home") >= 32 /* Don't waste precious RAM */ }, // Adds stats not usually in the HUD
   ];
 
   let interval = 29000; // Set the starting interval for periodic jobs
@@ -148,7 +148,7 @@ export async function main(ns: NS): Promise<void> {
       interval: (interval += 1000),
       name: "/singularity/tasks/upgradeRam.js",
       shouldRun: () => 4 in dictSourceFiles && dictSourceFiles[4] >= 2,
-    },
+    }
   ];
 
   /**
@@ -184,6 +184,9 @@ async function mainLoop(ns: NS): Promise<void> {
   // Initialize Contexts 
   hackingContext = new HackingContext(ns, new EarlyHackingStrategy())
 
+  // Open up the first set of servers 
+  await crackServers(ns, serverListByTargetOrder, portCrackers)
+
   do {
     loops++;
     if (loops > 0) await ns.sleep(loopInterval);
@@ -193,9 +196,11 @@ async function mainLoop(ns: NS): Promise<void> {
       buildServerList(ns, true); // Check if any new servers have been purchased by the external host_manager process
       await runPeriodicJobs(ns); // Run periodic jobs
 
+
       if (loops % 60 == 0) {
         // For more expensive updates, only do these every so often
         await refreshDynamicServerData(ns, addedServerNames);
+        await crackServers(ns, serverListByTargetOrder, portCrackers)
       }
 
       sortServerList("targeting"); // Update the order in which we ought to target servers
@@ -203,8 +208,8 @@ async function mainLoop(ns: NS): Promise<void> {
       let network = getNetworkStats();
 
       // Main actions that are repeated every single time on the loop
-      if ((playerStats.hacking < 30 || network.listOfServersFreeRam.length <= 0)) {
-        hackingContext.run()
+      if ((playerStats.hacking < 100 || network.listOfServersFreeRam.length <= 0)) {
+        await hackingContext.run(playerStats, serverListByTargetOrder)
         // ns.tprint("We are early in the loop we should go to school");
         // ns.universityCourse("Rothman University", "Study Computer Science");
 
@@ -632,6 +637,7 @@ function buildToolkit(ns: NS): void {
         return maxThreads;
       },
     };
+    ns.tprint(tool)
     tools.push(tool);
     toolsByShortName[tool.shortName || hashToolDefinition(tool)] = tool;
   }
@@ -692,6 +698,20 @@ function getTotalNetworkUtilization() {
 // =================================== //
 // ==== Asynchornous helper functions  //
 // =================================== //
+
+async function crackServers(ns : NS, serverListByTargetOrder: BurnerServer[], portCrackers: any[] ) : Promise<void> {
+
+  let availableCrackers = portCrackers.filter(cracker => cracker.exists())
+  let validTargets = serverListByTargetOrder.filter(server => server.portsRequired <= availableCrackers.length && server.hasRoot!)
+
+  validTargets.forEach(function(server){
+    availableCrackers.forEach(function(cracker) {
+          cracker.runAt(server.name)
+      })
+      ns.nuke(server.name)
+  })
+
+}
 
 async function runStartupScripts(ns: NS) {
   log("runStartupScripts");

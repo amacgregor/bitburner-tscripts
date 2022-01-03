@@ -1,4 +1,6 @@
-import { NS } from "../../../NetscriptDefinitions";
+import { NS, Player } from "../../../NetscriptDefinitions";
+import { HackingStrategyStates } from "/lib/enums.js";
+import { BurnerServer } from "/types/types.js";
 
 /**
  * The Strategy interface declares operations common to all supported versions
@@ -8,7 +10,8 @@ import { NS } from "../../../NetscriptDefinitions";
  * Strategies.
  */
 export interface HackingStrategy {
-  identifyTarget(ns: NS): string;
-  prepare(): boolean;
-  launchAttach(data: string[]): string[];
+  state: HackingStrategyStates;
+  identifyTarget(ns: NS, serverListByTargetOrder: BurnerServer[]): Promise<void>;
+  prepare(ns: NS, player: Player): Promise<void>;
+  launchAttach(ns: NS): Promise<void>;
 }
