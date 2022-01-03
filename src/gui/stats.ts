@@ -56,7 +56,7 @@ export async function main(ns: NS): Promise<void> {
       
       headers.push("<span style=\"text-align:left\">Home RAM</span> <br>")
       //@ts-ignore - Ignoring due to undocument NS behaivour
-      values.push(formatRam(ns.getServerUsedRam("home")) + "<br>")
+      values.push(formatRam(ns.getServerMaxRam("home") - ns.getServerUsedRam("home")) + "<br>")
 
       // eslint-disable-next-line no-irregular-whitespace
       hook0.innerHTML = headers.join("")
