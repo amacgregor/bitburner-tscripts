@@ -397,6 +397,43 @@ async function solverWaysToSum(ns : NS, arrayData : any) : Promise<any> {
     return precalcPartitions[arrayData]
 }
 
+async function solverSanitizeParentheses(ns : NS, arrayData : any) {
+	var solutions = new Set();
+
+	// Returns true and adds to solutions set if a string contains valid parentheses, false otherwise
+	var checkValidity = (str: string) => {
+		var nestLevel = 0;
+		for (var c of str) {
+			if (c == "(") nestLevel++;
+			else if (c == ")") nestLevel--;
+			if (nestLevel < 0) return false;
+		}
+
+		if (nestLevel == 0) solutions.add(str);
+		return nestLevel == 0;
+	};
+  
+	// Does a breadth first search to check all nodes at the target depth
+	var getNodesAtDepth = (str: string, targetDepth: number, curDepth = 0) => {
+		if (curDepth == targetDepth)
+			checkValidity(str);
+		else
+			for (var i = 0; i < str.length; i++)
+				if (str[i] == "(" || str[i] == ")")
+					getNodesAtDepth(str.slice(0, i) + str.slice(i + 1), targetDepth, curDepth + 1);
+	}
+	
+	// Start from the top level and expand down until we find at least one solution
+	var targetDepth = 0;
+	while (solutions.size == 0 && targetDepth < arrayData.length - 1) {
+		getNodesAtDepth(arrayData, targetDepth++);
+	}
+	
+	// If no solutions were found, return [""]
+	if (solutions.size == 0) solutions.add("");
+	return `[${[...solutions].join(", ")}]`;
+}
+
 export async function main(ns : NS) : Promise<void> {
     const listServers = ["home"]
     let listIndex = 0
@@ -646,6 +683,20 @@ export async function main(ns : NS) : Promise<void> {
                     outputData = await solverUniquePathsII(ns, inputData)
                     outputResult = ns.codingcontract.attempt(outputData, listFiles[z], listServers[listIndex])
  
+                    ns.tprint([listServers[listIndex],
+                        listFiles[z],
+                        inputType,
+                        outputData,
+                        outputResult
+                    ])
+                    if (!outputResult) {
+                        ns.tprint("Failed data for debug: " + JSON.stringify(inputData))
+                    }
+                    break
+                case "Sanitize Parentheses in Expression":
+                    outputData = await solverSanitizeParentheses(ns, inputData)
+                    outputResult = ns.codingcontract.attempt(outputData, listFiles[z], listServers[listIndex])
+    
                     ns.tprint([listServers[listIndex],
                         listFiles[z],
                         inputType,
