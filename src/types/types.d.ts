@@ -16,6 +16,21 @@ export declare interface PortCracker {
     doNuke: (target: string) => any;
 }
 
+export declare interface NetworkStats {
+    listOfServersFreeRam: number[];
+    totalMaxRam: number;
+    totalFreeRam: number;
+    totalUsedRam: number;
+}
+
+export declare interface Schedule {
+    toolName: string;
+    tool?: HackingTool;
+    target: string;
+    sleepTime: number;
+    threads: number;
+}
+
 export declare interface BurnerServer {
     ns: NS;
     name: string;

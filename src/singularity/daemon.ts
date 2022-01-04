@@ -148,7 +148,13 @@ export async function main(ns: NS): Promise<void> {
       interval: (interval += 1000),
       name: "/singularity/tasks/upgradeRam.js",
       shouldRun: () => 4 in dictSourceFiles && dictSourceFiles[4] >= 2,
-    }
+    },
+  ];
+
+  hackTools = [
+    { name: "/flurry/payloads/weaken.js", shortName: "weak", isThreadSpreadingAllowed: true },
+    { name: "/flurry/payloads/grow.js", shortName: "grow", isThreadSpreadingAllowed: true },
+    { name: "/flurry/payloads/hack.js", shortName: "hack", isThreadSpreadingAllowed: true },
   ];
 
   /**
@@ -181,11 +187,11 @@ async function mainLoop(ns: NS): Promise<void> {
   log("Starting daemon main loop");
   let loops = -1;
 
-  // Initialize Contexts 
-  hackingContext = new HackingContext(ns, new EarlyHackingStrategy())
+  // Initialize Contexts
+  hackingContext = new HackingContext(ns, new EarlyHackingStrategy());
 
-  // Open up the first set of servers 
-  await crackServers(ns, serverListByTargetOrder, portCrackers)
+  // Open up the first set of servers
+  await crackServers(ns, serverListByTargetOrder, portCrackers);
 
   do {
     loops++;
@@ -196,38 +202,36 @@ async function mainLoop(ns: NS): Promise<void> {
       buildServerList(ns, true); // Check if any new servers have been purchased by the external host_manager process
       await runPeriodicJobs(ns); // Run periodic jobs
 
-
       if (loops % 60 == 0) {
         // For more expensive updates, only do these every so often
         await refreshDynamicServerData(ns, addedServerNames);
-        await crackServers(ns, serverListByTargetOrder, portCrackers)
+        await crackServers(ns, serverListByTargetOrder, portCrackers);
       }
 
       sortServerList("targeting"); // Update the order in which we ought to target servers
 
       let network = getNetworkStats();
+      await ns.clearPort(1);
+      await ns.writePort(1, network.totalFreeRam);
+      await ns.writePort(1, network.totalMaxRam);
 
       // Main actions that are repeated every single time on the loop
-      if ((playerStats.hacking < 100 || network.listOfServersFreeRam.length <= 0)) {
-        await hackingContext.run(playerStats, serverListByTargetOrder)
-        // ns.tprint("We are early in the loop we should go to school");
-        // ns.universityCourse("Rothman University", "Study Computer Science");
-
-        // let serList = serverListByTargetOrder.filter(server => server.canCrack())
-        // let crackList = portCrackers.filter(cracker => cracker.exists())
-
-        // crackList.forEach((crack) => {
-        //   ns.tprint(crack.name)
-        // })
-
-        // serList.forEach(function(server) {
-        //   ns.tprint(`${server.name} - ${server.portsRequired} - ${server.getSecurity()} `)
-        //   ns.print(`${server.name} - ${server.portsRequired} - ${server.getSecurity()} `)
-        //   ns.nuke(server.name)
-        // })
-
+      if (playerStats.hacking < 100 || network.listOfServersFreeRam.length <= 0) {
+        let sched = await hackingContext.run(playerStats, serverListByTargetOrder, network);
+        if (sched) {
+          for (let i =0; sched.length > i; i++) {
+            let task = sched[i];
+            await arbitraryExecution(ns, getTool(task.toolName), task.threads, [task.target, task.sleepTime+10])
+          }
+        }
       } else {
-        ns.tprint("We have xp let's do something else ");
+        let sched = await hackingContext.run(playerStats, serverListByTargetOrder, network);
+        if (sched) {
+          for (let i =0; sched.length > i; i++) {
+            let task = sched[i];
+            await arbitraryExecution(ns, getTool(task.toolName), task.threads, [task.target, task.sleepTime+10])
+          }
+        }
       }
     } catch (err) {
       log("WARNING: Caught an error in the main loop: " + err, true, "warning");
@@ -619,7 +623,7 @@ function buildToolkit(ns: NS): void {
       args: toolConfig.args || [],
       shouldRun: toolConfig.shouldRun,
       requiredServer: toolConfig.requiredServer,
-      isThreadSpreadingAllowed: toolConfig.shortName === "weak",
+      isThreadSpreadingAllowed: toolConfig.isThreadSpreadingAllowed || toolConfig.shortName === "weak",
       cost: ns.getScriptRam(toolConfig.name, daemonHost),
       canRun: function (server) {
         return doesFileExist(this.name, server.name) && server.ramAvailable() >= this.cost;
@@ -637,7 +641,7 @@ function buildToolkit(ns: NS): void {
         return maxThreads;
       },
     };
-    ns.tprint(tool)
+    ns.tprint(tool);
     tools.push(tool);
     toolsByShortName[tool.shortName || hashToolDefinition(tool)] = tool;
   }
@@ -699,18 +703,16 @@ function getTotalNetworkUtilization() {
 // ==== Asynchornous helper functions  //
 // =================================== //
 
-async function crackServers(ns : NS, serverListByTargetOrder: BurnerServer[], portCrackers: any[] ) : Promise<void> {
+async function crackServers(ns: NS, serverListByTargetOrder: BurnerServer[], portCrackers: any[]): Promise<void> {
+  let availableCrackers = portCrackers.filter((cracker) => cracker.exists());
+  let validTargets = serverListByTargetOrder.filter((server) => server.portsRequired <= availableCrackers.length && server.hasRoot!);
 
-  let availableCrackers = portCrackers.filter(cracker => cracker.exists())
-  let validTargets = serverListByTargetOrder.filter(server => server.portsRequired <= availableCrackers.length && server.hasRoot!)
-
-  validTargets.forEach(function(server){
-    availableCrackers.forEach(function(cracker) {
-          cracker.runAt(server.name)
-      })
-      ns.nuke(server.name)
-  })
-
+  validTargets.forEach(function (server) {
+    availableCrackers.forEach(function (cracker) {
+      cracker.runAt(server.name);
+    });
+    ns.nuke(server.name);
+  });
 }
 
 async function runStartupScripts(ns: NS) {
@@ -891,6 +893,7 @@ export async function arbitraryExecution(
     if (remainingThreads > 0) {
       if (!tool.isThreadSpreadingAllowed) break;
       // No need to warn if it's allowed? log(`WARNING: Had to split ${threads} ${tool.name} threads across multiple servers. ${maxThreadsHere} on ${targetServer.name}`);
+      log(`WARNING: Had to split ${threads} ${tool.name} threads across multiple servers. ${maxThreadsHere} on ${targetServer.name}`);
       splitThreads = true;
     }
   }

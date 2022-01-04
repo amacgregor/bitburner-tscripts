@@ -3,22 +3,23 @@ import { HackingStrategy } from "/lib/interfaces/hacking.strategy.js";
 import { HackingStrategyStates } from "/lib/enums.js";
 import { getNsDataThroughFile } from "/lib/ram.js";
 import { announce } from "/lib/helper.js";
-import { BurnerServer } from "/types/types.js";
+import { BurnerServer, NetworkStats, Schedule } from "/types/types.js";
 
 export class EarlyHackingStrategy implements HackingStrategy {
   private targets: BurnerServer[] = [];
-  public state: HackingStrategyStates = HackingStrategyStates.PREPARING;
   private studying = false;
   private lastStatusUpdateTime = 0;
   private statusUpdateInterval = 120000; // 2 minute interval for notifications
 
+  public state: HackingStrategyStates = HackingStrategyStates.PREPARING;
+
   /**
    * Early game strategy get the player hacking level to 20 by studying
    *
-   * @param   {NS}             ns      [ns description]
-   * @param   {Player<void>}   player  [player description]
+   * @param   {NS}             ns
+   * @param   {Player<void>}   player  Player information object
    *
-   * @return  {Promise<void>}          [return description]
+   * @return  {Promise<void>}
    */
   public async prepare(ns: NS, player: Player): Promise<void> {
     if (player.hacking < 20 && this.studying == false) {
@@ -52,37 +53,58 @@ export class EarlyHackingStrategy implements HackingStrategy {
    *
    * @return  {void}
    */
-  public async identifyTarget(ns: NS, serverListByTargetOrder: BurnerServer[]): Promise<void> {
-    let validTargets = serverListByTargetOrder.filter((s) => s.canHack() && s.shouldHack() && s.hasRoot());
-
-    if (validTargets.length > 0) {
-      this.targets = validTargets;
+  public async identifyTarget(ns: NS, serverListByTargetOrder: BurnerServer[], preferredTarget: null|string): Promise<void> {
+    if(preferredTarget != null) {
+      let validTargets = serverListByTargetOrder.filter((s) => s.name == preferredTarget)
+      this.targets = validTargets
       announce(ns, `Total of ${validTargets.length} found.`, "info");
       this.state = HackingStrategyStates.TARGET_IDENTIFIED;
-    } else {
-      if (Date.now() - this.lastStatusUpdateTime > this.statusUpdateInterval) {
-        announce(ns, `No Valid targets founds`, "warning");
-        this.lastStatusUpdateTime = Date.now();
+    }else  {
+      let validTargets = serverListByTargetOrder.filter((s) => s.canHack() && s.shouldHack() && s.hasRoot());
+
+      if (validTargets.length > 0) {
+        this.targets = validTargets;
+        announce(ns, `Total of ${validTargets.length} found.`, "info");
+        this.state = HackingStrategyStates.TARGET_IDENTIFIED;
+      } else {
+        if (Date.now() - this.lastStatusUpdateTime > this.statusUpdateInterval) {
+          announce(ns, `No Valid targets founds`, "warning");
+          this.lastStatusUpdateTime = Date.now();
+        }
       }
     }
   }
 
   /**
-   * Make every server hack itself using the looper script.
+   * Will return 3 types of schedules:
+   * - Priming - Max money and Min security must be acheived for this to work
+   * - Lowering - If Max Money is true, making sure security level is at its minimum
+   * - Attack - Once the server is primed run the main attack loop 
    *
-   * @param   {NS<void>}       ns  [ns description]
+   * @param   {NS}                   ns            [ns description]
+   * @param   {NetworkStats<any>[]}  networkStats  [networkStats description]
    *
-   * @return  {Promise<void>}      [return description]
+   * @return  {Promise<any>[]}                     [return description]
    */
-  public async launchAttach(ns: NS): Promise<void> {
-    for (let i = 0; this.targets.length > i; i++) {
-        let host = this.targets[i].name
-        let threads = Math.floor(ns.getServerMaxRam(host) / ns.getScriptRam("/early/looper.js", host));
-        if (threads > 0) {
-            await ns.scp("/early/looper.js", "home", host);
-            await ns.exec("/early/looper.js", host, threads, host);
-        }
+  public async schedule(ns: NS, networkStats: NetworkStats): Promise<Schedule[]> {
+    let schedule: Schedule[] = [];
+    let target = this.targets[0];
+    if(target.isPrepped() == false){
+
+      schedule.push({toolName: "weak", target: target.name, threads: target.weakenThreadsNeeded(), sleepTime: 0})
+      schedule.push({toolName: "grow", target: target.name, threads: target.getGrowThreadsNeeded(), sleepTime: 0})
+      // this.state = HackingStrategyStates.RUNNING;
+
+      return schedule
+    
+    } else if (target.isPrepped()) {
+      schedule.push({toolName: "weak", target: target.name, threads: target.getWeakenThreadsNeededAfterGrowth(), sleepTime: 0})
+      schedule.push({toolName: "grow", target: target.name, threads: target.getGrowThreadsNeededAfterTheft(), sleepTime: target.growDelay()})
+      schedule.push({toolName: "hack", target: target.name, threads: target.getHackThreadsNeeded(), sleepTime: target.hackDelay()})
+      // this.state = HackingStrategyStates.RUNNING;
+
+      return schedule
     }
-    this.state = HackingStrategyStates.RUNNING;
+    return schedule;
   }
 }
