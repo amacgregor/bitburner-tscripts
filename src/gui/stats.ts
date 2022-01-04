@@ -56,7 +56,18 @@ export async function main(ns: NS): Promise<void> {
       
       headers.push("<span style=\"text-align:left\">Home RAM</span> <br>")
       //@ts-ignore - Ignoring due to undocument NS behaivour
-      values.push(formatRam(ns.getServerMaxRam("home") - ns.getServerUsedRam("home")) + "<br>")
+      values.push(formatRam(ns.getServerMaxRam("home") - ns.getServerUsedRam("home")) + " Free<br>")
+
+            
+      headers.push("<span style=\"text-align:left\">Net. RAM</span> <br>")
+      //@ts-ignore - Ignoring due to undocument NS behaivour
+     
+      let network = []
+      for (let i = 0; i < 3; ++i) {
+       network.push(ns.readPort(1)); //Reads a value from port 1 and then prints it
+      }
+    
+      values.push(formatRam(network[0]) + " Free<br>")
 
       // eslint-disable-next-line no-irregular-whitespace
       hook0.innerHTML = headers.join("")
