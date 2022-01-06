@@ -1,0 +1,34 @@
+  // const table = Object.entries(addedServerNames).map(([key, hostname]) => {
+  //   ns.tprint(hostname);
+  //   const server = getServerByName(hostname)
+  //   return [
+  //     ServerStatus.NotReady,
+  //     hostname,
+  //     dictServerRequiredHackinglevels[hostname].toString(),
+  //     dictServerNumPortsRequired[hostname].toString(),
+  //     dictServerMinSecurityLevels[hostname].toString(),
+  //     formatMoney(dictServerMaxMoney[hostname]),
+  //   ];
+  // });
+
+  // tableMaker([["", "name", "Required Level", "Required Ports", "Min Se. Level", "Max. Money"]].concat(table)).forEach((row) => {
+  //   ns.print(row);
+  // });
+
+  // for (let key in dictServerRequiredHackinglevels) {
+  //   ns.tprint(key)
+  //   ns.tprint(dictServerRequiredHackinglevels[key])
+  //   ns.tprint(dictServerNumPortsRequired[key])
+  // }
+
+
+
+  const context = new Context(ns, new ConcreteStrategyA());
+  ns.tprint("Client: Strategy is set to normal sorting.");
+  context.doSomeBusinessLogic();
+
+  ns.tprint("");
+
+  ns.tprint("Client: Strategy is set to reverse sorting.");
+  context.setStrategy(new ConcreteStrategyB());
+  context.doSomeBusinessLogic();

@@ -837,7 +837,7 @@ export async function arbitraryExecution(
 
   // For debug information
   if (verbose) {
-    ns.tprint(`Preferred Server ${preferredServerName} for ${tool.name} resulted in preferred order: ${preferredServerOrder.map((srv) => srv.name)}`);
+    //ns.tprint(`Preferred Server ${preferredServerName} for ${tool.name} resulted in preferred order: ${preferredServerOrder.map((srv) => srv.name)}`);
   }
 
   // Helper function to compute the most threads a server can run

@@ -9,6 +9,7 @@ export class EarlyHackingStrategy implements HackingStrategy {
   private targets: BurnerServer[] = [];
   private studying = false;
   private lastStatusUpdateTime = 0;
+  private scheduleWaitTime = 0;
   private statusUpdateInterval = 120000; // 2 minute interval for notifications
 
   public state: HackingStrategyStates = HackingStrategyStates.PREPARING;
@@ -46,6 +47,7 @@ export class EarlyHackingStrategy implements HackingStrategy {
       ns.exit();
     }
   }
+
   /**
    * Identify the best target based on the status of the network
    *
@@ -53,13 +55,13 @@ export class EarlyHackingStrategy implements HackingStrategy {
    *
    * @return  {void}
    */
-  public async identifyTarget(ns: NS, serverListByTargetOrder: BurnerServer[], preferredTarget: null|string): Promise<void> {
-    if(preferredTarget != null) {
-      let validTargets = serverListByTargetOrder.filter((s) => s.name == preferredTarget)
-      this.targets = validTargets
+  public async identifyTarget(ns: NS, serverListByTargetOrder: BurnerServer[], preferredTarget: null | string): Promise<void> {
+    if (preferredTarget != null) {
+      let validTargets = serverListByTargetOrder.filter((s) => s.name == preferredTarget);
+      this.targets = validTargets;
       announce(ns, `Total of ${validTargets.length} found.`, "info");
       this.state = HackingStrategyStates.TARGET_IDENTIFIED;
-    }else  {
+    } else {
       let validTargets = serverListByTargetOrder.filter((s) => s.canHack() && s.shouldHack() && s.hasRoot());
 
       if (validTargets.length > 0) {
@@ -79,7 +81,7 @@ export class EarlyHackingStrategy implements HackingStrategy {
    * Will return 3 types of schedules:
    * - Priming - Max money and Min security must be acheived for this to work
    * - Lowering - If Max Money is true, making sure security level is at its minimum
-   * - Attack - Once the server is primed run the main attack loop 
+   * - Attack - Once the server is primed run the main attack loop
    *
    * @param   {NS}                   ns            [ns description]
    * @param   {NetworkStats<any>[]}  networkStats  [networkStats description]
@@ -88,22 +90,38 @@ export class EarlyHackingStrategy implements HackingStrategy {
    */
   public async schedule(ns: NS, networkStats: NetworkStats): Promise<Schedule[]> {
     let schedule: Schedule[] = [];
+    this.targets.reverse()
     let target = this.targets[0];
-    if(target.isPrepped() == false){
+    let incrementInterval = 0
+    if (Date.now() - this.lastStatusUpdateTime > this.scheduleWaitTime) {
+      if (target.isPrepped() == false) {
+        schedule.push({ toolName: "weak", target: target.name, threads: target.weakenThreadsNeeded(), sleepTime: 0 });
+        schedule.push({ toolName: "grow", target: target.name, threads: target.getGrowThreadsNeeded(), sleepTime: 0 });
+        this.lastStatusUpdateTime = Date.now();
+        this.scheduleWaitTime = target.timeToWeaken();
 
-      schedule.push({toolName: "weak", target: target.name, threads: target.weakenThreadsNeeded(), sleepTime: 0})
-      schedule.push({toolName: "grow", target: target.name, threads: target.getGrowThreadsNeeded(), sleepTime: 0})
-      // this.state = HackingStrategyStates.RUNNING;
+        // this.state = HackingStrategyStates.RUNNING;
 
-      return schedule
-    
-    } else if (target.isPrepped()) {
-      schedule.push({toolName: "weak", target: target.name, threads: target.getWeakenThreadsNeededAfterGrowth(), sleepTime: 0})
-      schedule.push({toolName: "grow", target: target.name, threads: target.getGrowThreadsNeededAfterTheft(), sleepTime: target.growDelay()})
-      schedule.push({toolName: "hack", target: target.name, threads: target.getHackThreadsNeeded(), sleepTime: target.hackDelay()})
-      // this.state = HackingStrategyStates.RUNNING;
+        return schedule;
+      } else if (target.isPrepped()) {
+        let ramNeededPerRun = (1.75 * target.getWeakenThreadsNeededAfterGrowth()) + (1.75 *  target.getGrowThreadsNeededAfterTheft()) + (1.75 *  target.getHackThreadsNeeded())
+        let ramPerSchedule = 0;
+        let delayBetweenCycles = 0;
 
-      return schedule
+        while(ramPerSchedule < networkStats.totalFreeRam) {
+          schedule.push({ toolName: "weak", target: target.name, threads: target.getWeakenThreadsNeededAfterGrowth(), sleepTime: (0 + delayBetweenCycles) });
+          schedule.push({ toolName: "grow", target: target.name, threads: target.getGrowThreadsNeededAfterTheft(), sleepTime: (target.growDelay() + delayBetweenCycles) });
+          schedule.push({ toolName: "hack", target: target.name, threads: target.getHackThreadsNeeded(), sleepTime: (target.hackDelay() + delayBetweenCycles) });
+          ramPerSchedule += ramNeededPerRun;
+          delayBetweenCycles += target.hackDelay()
+        }
+ 
+        // this.state = HackingStrategyStates.RUNNING;
+        this.lastStatusUpdateTime = Date.now();
+        this.scheduleWaitTime = target.timeToWeaken();
+
+        return schedule;
+      }
     }
     return schedule;
   }
