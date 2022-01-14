@@ -1,5 +1,8 @@
-const https = require("https")
-const fs = require("fs")
+// const https = require("https")
+// const fs = require("fs")
+
+import https from "https"
+import fs from "fs"
 
 const url = 'https://raw.githubusercontent.com/danielyxie/bitburner/dev/src/ScriptEditor/NetscriptDefinitions.d.ts'
 const path = './NetscriptDefinitions.d.ts'

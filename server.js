@@ -28,7 +28,7 @@ const server = http.createServer(async (request, response) => {
 })
 
 function cleanFileName(filename) {
-  return filename.replace("dist\\", "").replaceAll("\\", "_")
+  return filename.replace("dist/", "").replace("dist\\", "").replaceAll("\\", "_")
 }
 
 server.listen(18718, () => {
