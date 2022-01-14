@@ -1,5 +1,5 @@
 import { NS } from "../../NetscriptDefinitions"
-
+import { lsKeys } from '/lib/common/constants.js';
 /**
  * Used to waitFor a function to finish executing. Useful for automation around Singularity scripts.
  * @param {NS} ns - The main netscript object
@@ -76,3 +76,15 @@ export function hashCode(s: string): number {
     return a & a
   }, 0)
 }
+
+/**
+ * @param {string} key
+ * @return {any} The value read from localStorage
+ * @cost 0 GB
+ **/
+ export function getLSItem(key: string) {
+  let item = localStorage.getItem(lsKeys[key.toUpperCase()])
+
+  return item ? JSON.parse(item) : undefined
+}
+
