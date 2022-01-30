@@ -27,13 +27,13 @@ export async function main(ns : NS) : Promise<void> {
         const memberInfo = ns.gang.getMemberInformation(member)
         const currentMult = memberInfo[`${skill}_asc_mult`]
         const nextThreshhold = thresholds.find(t => t > currentMult)
-        const ascResult = pAscResult[`${skill}`] + currentMult
+        const ascResult = pAscResult[`${skill}`] * currentMult
 
         if ( ascResult > nextThreshhold ) {
             ns.gang.ascendMember(member)
             return announce(ns, `Gang member ${member} ascended`, "success")
         } else {
-            return ns.print(`${member} ascension multiplier too low to ascend`)
+            return ns.print(`${member} - ${ascResult} - ${nextThreshhold} - ${pAscResult['str']} ascension multiplier too low to ascend`)
         }
 
 

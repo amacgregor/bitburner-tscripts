@@ -36,8 +36,12 @@ const gangMemberNamesList = [
 export async function main(ns : NS) : Promise<void> {
     while (ns.gang.canRecruitMember()) {
         const gangMemberNames = ns.gang.getMemberNames();
-        ns.gang.recruitMember(gangMemberNamesList[gangMemberNames.length])
-        ns.tprint(`Recruited ${gangMemberNamesList[gangMemberNames.length]}`)
+        const availableNames = gangMemberNamesList.filter(x => !gangMemberNames.includes(x));
+
+        const randomNameIndex = Math.floor(Math.random() * availableNames.length)
+
+        ns.gang.recruitMember(availableNames[randomNameIndex])
+        ns.tprint(`Recruited ${availableNames[randomNameIndex]}`)
         await ns.sleep(1)
       }
 }

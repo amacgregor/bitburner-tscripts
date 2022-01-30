@@ -219,17 +219,17 @@ async function mainLoop(ns: NS): Promise<void> {
       if (playerStats.hacking < 100 || network.listOfServersFreeRam.length <= 0) {
         let sched = await hackingContext.run(playerStats, serverListByTargetOrder, network);
         if (sched) {
-          for (let i =0; sched.length > i; i++) {
+          for (let i = 0; sched.length > i; i++) {
             let task = sched[i];
-            await arbitraryExecution(ns, getTool(task.toolName), task.threads, [task.target, task.sleepTime+10])
+            await arbitraryExecution(ns, getTool(task.toolName), task.threads, [task.target, task.sleepTime + 10])
           }
         }
       } else {
         let sched = await hackingContext.run(playerStats, serverListByTargetOrder, network);
         if (sched) {
-          for (let i =0; sched.length > i; i++) {
+          for (let i = 0; sched.length > i; i++) {
             let task = sched[i];
-            await arbitraryExecution(ns, getTool(task.toolName), task.threads, [task.target, task.sleepTime+10])
+            await arbitraryExecution(ns, getTool(task.toolName), task.threads, [task.target, task.sleepTime + 10])
           }
         }
       }
@@ -385,7 +385,10 @@ function removeServerByName(deletedHostName: string): void {
 /** @param {NS} ns **/
 function buildServerList(ns: NS, verbose = false): void {
   // Get list of servers (i.e. all servers on first scan, or newly purchased servers on subsequent scans) that are not currently flagged for deletion
-  const allServers = scanAllServers(ns).filter((hostName) => !isFlaggedForDeletion(hostName));
+  let allServers = scanAllServers(ns).filter((hostName) => !isFlaggedForDeletion(hostName));
+  
+  // Don't use hacknet servers
+  allServers = allServers.filter(hostName => !hostName.startsWith('hacknet-node-'))
 
   // Remove all servers we currently have added that are no longer being returned by the above query
   for (const hostName of addedServerNames.filter((hostName) => !allServers.includes(hostName))) {
